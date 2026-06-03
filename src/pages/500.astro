@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+interface Props {
+    error: unknown;
+}
+
+const { error } = Astro.props;
+---
+
+<Layout title="500: Internal Server Error | yourtool.in">
+	<section class="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+		<!-- Mesh Gradient Background (reused from index) -->
+		<div class="absolute top-0 left-1/2 -z-10 h-[1000px] w-[1000px] -translate-x-1/2 [mask-image:radial-gradient(closest-side,white,transparent)]">
+			<div class="absolute inset-0 bg-gradient-to-r from-red-400 via-orange-500 to-pink-500 opacity-20 blur-3xl"></div>
+		</div>
+
+		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+			<p class="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide">500 Error</p>
+			<h1 class="mt-4 text-4xl font-extrabold tracking-tight text-black dark:text-white sm:text-6xl">
+				Something went <br />
+				<span class="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500">unexpectedly wrong.</span>
+			</h1>
+			<p class="mt-6 mx-auto max-w-2xl text-lg text-gray-600 dark:text-zinc-400">
+				We're experiencing some technical difficulties on our end. Our team has been notified and we're working to get things back on track.
+			</p>
+
+            {import.meta.env.DEV && error && (
+                <div class="mt-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-left overflow-auto max-w-2xl mx-auto">
+                    <p class="text-xs font-mono text-red-700 dark:text-red-300 whitespace-pre-wrap">
+                        {error instanceof Error ? error.stack : String(error)}
+                    </p>
+                </div>
+            )}
+
+			<div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+				<a href="/" class="rounded-full bg-black dark:bg-white px-8 py-3 text-sm font-semibold text-white dark:text-black shadow-sm hover:bg-gray-800 dark:hover:bg-zinc-200 transition-all transform hover:scale-105">
+					Back to Home
+				</a>
+				<a href="/contact-us" class="rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-8 py-3 text-sm font-semibold text-gray-900 dark:text-zinc-100 shadow-sm hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all">
+					Report Issue
+				</a>
+			</div>
+		</div>
+	</section>
+</Layout>

@@ -1,0 +1,82 @@
+---
+const faqs = [
+  {
+    question: "What is yourtool.in?",
+    answer: "yourtool.in is a hybrid productivity platform that combines a personal link-management workspace with a public directory of curated tech tools. You can use it to privately organize your daily working links or browse our 'Hidden Gems' directory to discover over 100 of the best websites, AI generators, and productivity apps on the internet."
+  },
+  {
+    question: "Do I need to create an account to use the workspace?",
+    answer: "No, you do not need an account to get started. You can use the personal workspace as a guest, and your links and categories will be saved directly to your browser. If you decide to sign up later, all of your saved data will automatically sync and merge into your new secure profile."
+  },
+  {
+    question: "How does the personal workspace work?",
+    answer: "The workspace acts as your private daily dashboard. When you paste an important website link, the platform automatically fetches its title, description, and logo. You can organize these links into custom categories, making it incredibly easy to search and find exactly what you need for your daily workflow."
+  },
+  {
+    question: "What is the Hidden Gems directory?",
+    answer: "The Hidden Gems directory is our public pool of highly useful, curated websites. We have organized these tools into 20 distinct categories, ranging from AI Video Generation to Developer Tools. You can browse these categories to find free and premium tools, and even upvote your favorites to help them trend."
+  },
+  {
+    question: "Can I submit a tool or website to the directory?",
+    answer: "Absolutely. If you know of an amazing website or free tool that people should know about, you can use our submit option. Just provide the website link, a short description, and its category. Our admin team will review it, and once approved, it will be published live in the public directory for everyone to use."
+  },
+  {
+    question: "Is yourtool.in free to use?",
+    answer: "Yes, using the private workspace to manage your links and exploring the public Hidden Gems directory is 100% free for all users."
+  }
+];
+
+const schema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(faq => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": `<p>${faq.answer}</p>`
+    }
+  }))
+};
+---
+
+<section class="py-24 bg-white dark:bg-zinc-950">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl font-extrabold tracking-tight text-black dark:text-white sm:text-4xl">
+        Frequently Asked Questions
+      </h2>
+      <p class="mt-4 text-lg text-gray-600 dark:text-zinc-400">
+        Everything you need to know about yourtool.in
+      </p>
+    </div>
+
+    <div class="mx-auto max-w-3xl divide-y divide-gray-200 dark:divide-zinc-800">
+      {faqs.map((faq) => (
+        <details class="group py-6">
+          <summary class="flex w-full items-center justify-between text-left font-semibold text-gray-900 dark:text-zinc-100 cursor-pointer list-none">
+            <span>{faq.question}</span>
+            <span class="ml-6 flex-shrink-0">
+              <svg class="h-6 w-6 text-gray-500 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </span>
+          </summary>
+          <div class="mt-4 text-gray-600 dark:text-zinc-400 leading-7">
+            {faq.answer}
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<!-- SEO Structured Data -->
+<script type="application/ld+json" set:html={JSON.stringify(schema)} />
+
+<style>
+  /* Hide default details marker */
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

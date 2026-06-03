@@ -1,0 +1,409 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+// Check if user is logged in
+const { data: { session } } = await supabase.auth.getSession();
+const user = session?.user;
+---
+
+<Layout title="My Workspace | yourtool.in">
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight text-black dark:text-white sm:text-4xl">My Workspace</h1>
+        <p class="mt-2 text-gray-600 dark:text-zinc-400">
+          {user ? `Welcome back, ${user.email}. All your links are synced.` : 'Guest Mode: Your links are saved to this browser. Sign in to sync across devices.'}
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+        <input 
+          type="text" 
+          id="search-links" 
+          placeholder="Search your links..." 
+          class="rounded-full border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white w-full sm:w-64"
+        />
+        <button id="open-add-modal" class="rounded-full bg-black dark:bg-white px-4 py-2 text-sm font-semibold text-white dark:text-black hover:bg-gray-800 dark:hover:bg-zinc-200 transition-colors whitespace-nowrap">
+          Add Link
+        </button>
+      </div>
+    </div>
+
+    <!-- Workspace Controls -->
+    <div class="mt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-zinc-800 pb-6">
+      <div class="flex items-center gap-4 w-full sm:w-auto">
+        <div class="relative w-full sm:w-64">
+          <label for="category-filter" class="sr-only">Filter by Category</label>
+          <select 
+            id="category-filter" 
+            class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2.5 text-sm font-medium focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white transition-all appearance-none cursor-pointer"
+          >
+            <option value="all">All Categories</option>
+            <!-- Categories will be rendered here -->
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+        </div>
+        
+        <button id="add-category-btn" class="flex items-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-zinc-600 px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-zinc-300 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-all whitespace-nowrap bg-gray-50/50 dark:bg-zinc-900/50">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Category
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider">
+        <span id="links-count" class="text-black dark:text-white">0</span> links found
+      </div>
+    </div>
+
+    <!-- Links Grid -->
+    <div id="links-container" class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <!-- Links will be rendered here by client script -->
+      <div class="animate-pulse col-span-full py-20 text-center text-gray-400">Loading your links...</div>
+    </div>
+  </div>
+
+  <!-- Add Link Modal -->
+  <div id="add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 p-8 shadow-2xl border dark:border-zinc-800">
+      <h2 class="text-xl font-bold text-black dark:text-white">Add New Link</h2>
+      <form id="add-link-form" class="mt-6 space-y-4">
+        <div>
+          <label for="url-input" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">URL</label>
+          <div class="flex gap-2 mt-1">
+            <input type="url" id="url-input" required placeholder="https://example.com" class="block w-full rounded-md border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white" />
+            <button type="button" id="workspace-fetch-btn" class="rounded-md bg-gray-100 dark:bg-zinc-800 px-3 py-2 text-[10px] font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors uppercase whitespace-nowrap">Fetch</button>
+          </div>
+        </div>
+
+        <div id="fetched-fields" class="hidden space-y-4">
+          <div>
+            <label for="title-input" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Title</label>
+            <input type="text" id="title-input" class="mt-1 block w-full rounded-md border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white" />
+          </div>
+          <div>
+            <label for="desc-input" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Description</label>
+            <textarea id="desc-input" rows="2" class="mt-1 block w-full rounded-md border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white"></textarea>
+          </div>
+          <input type="hidden" id="favicon-url-input" />
+        </div>
+        
+        <div>
+          <label for="category-select" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Category</label>
+          <select id="category-select" class="mt-1 block w-full rounded-md border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white">
+            <option value="">General</option>
+          </select>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-8">
+          <button type="button" id="close-modal" class="rounded-md border border-gray-200 dark:border-zinc-800 px-4 py-2 text-sm font-medium text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800">Cancel</button>
+          <button type="submit" id="save-link" class="rounded-md bg-black dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-black hover:bg-gray-800 dark:hover:bg-zinc-200 disabled:opacity-50">Save Link</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="category-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-zinc-900 p-8 shadow-2xl border dark:border-zinc-800">
+      <h2 class="text-xl font-bold text-black dark:text-white">Create New Category</h2>
+      <form id="add-category-form" class="mt-6 space-y-4">
+        <div>
+          <label for="cat-name-input" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Category Name</label>
+          <input type="text" id="cat-name-input" required placeholder="Design, AI, News..." class="mt-1 block w-full rounded-md border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white" />
+        </div>
+        <div class="flex justify-end gap-3 mt-8">
+          <button type="button" id="close-cat-modal" class="rounded-md border border-gray-200 dark:border-zinc-800 px-4 py-2 text-sm font-medium text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800">Cancel</button>
+          <button type="submit" class="rounded-md bg-black dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-black hover:bg-gray-800 dark:hover:bg-zinc-200">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    import { supabase } from '../lib/supabase';
+
+    // Client-side state management
+    let links = [];
+    let categories = [];
+    let currentCategory = 'all';
+
+    const container = document.getElementById('links-container');
+    const catFilter = document.getElementById('category-filter') as HTMLSelectElement;
+    const linksCount = document.getElementById('links-count');
+    const catSelect = document.getElementById('category-select') as HTMLSelectElement;
+    
+    const addModal = document.getElementById('add-modal');
+    const catModal = document.getElementById('category-modal');
+    
+    const addForm = document.getElementById('add-link-form') as HTMLFormElement;
+    const catForm = document.getElementById('add-category-form') as HTMLFormElement;
+    
+    const urlInput = document.getElementById('url-input') as HTMLInputElement;
+    const titleInput = document.getElementById('title-input') as HTMLInputElement;
+    const descInput = document.getElementById('desc-input') as HTMLTextAreaElement;
+    const faviconUrlInput = document.getElementById('favicon-url-input') as HTMLInputElement;
+    const fetchedFields = document.getElementById('fetched-fields');
+    const fetchBtn = document.getElementById('workspace-fetch-btn') as HTMLButtonElement;
+    const catNameInput = document.getElementById('cat-name-input') as HTMLInputElement;
+    const saveBtn = document.getElementById('save-link') as HTMLButtonElement;
+
+    let currentMeta = null;
+
+    // Initial load
+    async function loadData() {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Fetch Categories
+        const { data: catData } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+        categories = catData || [];
+
+        // Check if "General" exists in categories, if not add it to the list for UI (not necessarily DB yet)
+        if (!categories.find(c => c.name.toLowerCase() === 'general')) {
+          // We can't easily insert it here without user_id, but we can make it a fallback
+        }
+
+        // Fetch Links
+        const { data: linkData, error } = await supabase
+          .from('links')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (!error) {
+          links = linkData;
+        }
+      } else {
+        // Fallback to LocalStorage for guests
+        const localLinks = localStorage.getItem('yt_links');
+        links = localLinks ? JSON.parse(localLinks) : [];
+        
+        const localCats = localStorage.getItem('yt_categories');
+        categories = localCats ? JSON.parse(localCats) : [];
+      }
+      
+      renderCategories();
+      renderLinks();
+    }
+
+    function renderCategories() {
+      if (!catFilter || !catSelect) return;
+
+      const hasGeneral = categories.some(c => c.name.toLowerCase() === 'general');
+      const generalOption = hasGeneral ? '' : '<option value="">General</option>';
+
+      // Update Filter Select
+      catFilter.innerHTML = '<option value="all">All Categories</option>' + 
+        generalOption +
+        categories.map(cat => `<option value="${cat.id}" ${currentCategory === cat.id ? 'selected' : ''}>${cat.name}</option>`).join('');
+
+      // Update Modal Select
+      catSelect.innerHTML = generalOption + 
+        categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+    }
+
+    catFilter?.addEventListener('change', (e) => {
+      currentCategory = (e.target as HTMLSelectElement).value;
+      renderLinks();
+    });
+
+    function renderLinks(filteredLinks = null) {
+      if (!container) return;
+
+      if (!filteredLinks) {
+        filteredLinks = currentCategory === 'all' 
+          ? links 
+          : currentCategory === '' 
+            ? links.filter(l => !l.category_id)
+            : links.filter(l => l.category_id === currentCategory);
+      }
+
+      if (linksCount) linksCount.textContent = filteredLinks.length.toString();
+
+      if (filteredLinks.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-20 text-center border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-3xl">
+            <p class="text-gray-400 dark:text-zinc-500">No links found in this category.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredLinks.map((link, idx) => {
+        const catName = categories.find(c => c.id === link.category_id)?.name || 'General';
+        return `
+          <div class="group relative flex flex-col rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-5 hover:border-black dark:hover:border-white transition-all">
+            <div class="flex items-start justify-between">
+              <img src="${link.favicon_url || 'https://www.google.com/s2/favicons?sz=64&domain=' + link.url}" class="h-6 w-6 rounded" alt="" />
+              <button data-id="${link.id || idx}" class="delete-btn text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <h3 class="mt-4 text-sm font-bold text-black dark:text-white truncate">${link.title || 'Untitled'}</h3>
+            <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400 line-clamp-2">${link.description || ''}</p>
+            <div class="mt-4 flex items-center justify-between">
+              <a href="${link.url}" target="_blank" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">Visit site</a>
+              ${catName ? `<span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-600">${catName}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Add delete listeners
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = (e.currentTarget as HTMLElement).dataset.id;
+          await deleteLink(id);
+        });
+      });
+    }
+
+    // Add link logic
+    fetchBtn?.addEventListener('click', async () => {
+      const url = urlInput.value;
+      if (!url) return;
+
+      try {
+        fetchBtn.disabled = true;
+        fetchBtn.textContent = '...';
+        const res = await fetch('/api/fetch-meta', {
+          method: 'POST',
+          body: JSON.stringify({ url })
+        });
+        const meta = await res.json();
+        
+        if (titleInput) titleInput.value = meta.title || '';
+        if (descInput) descInput.value = meta.description || '';
+        if (faviconUrlInput) faviconUrlInput.value = meta.favicon_url || '';
+        
+        fetchedFields?.classList.remove('hidden');
+        currentMeta = meta;
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'FETCH';
+      } catch (e) {
+        console.error(e);
+        fetchBtn.disabled = false;
+        fetchBtn.textContent = 'FETCH';
+        alert('Failed to fetch metadata. You can still enter it manually.');
+        fetchedFields?.classList.remove('hidden');
+      }
+    });
+
+    addForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const newLinkData = {
+        url: urlInput.value,
+        title: titleInput.value || urlInput.value,
+        description: descInput.value,
+        favicon_url: faviconUrlInput.value,
+        category_id: catSelect.value || null
+      };
+
+      if (session) {
+        const { error } = await supabase
+          .from('links')
+          .insert([{ ...newLinkData, user_id: session.user.id }]);
+        
+        if (error) {
+          alert(error.message);
+          return;
+        }
+      } else {
+        links.unshift({ ...newLinkData, id: Date.now().toString(), created_at: new Date().toISOString() });
+        localStorage.setItem('yt_links', JSON.stringify(links));
+      }
+      
+      await loadData();
+      closeModal();
+    });
+
+    // Add category logic
+    catForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = catNameInput.value;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        const { error } = await supabase
+          .from('categories')
+          .insert([{ name, user_id: session.user.id }]);
+        
+        if (error) {
+          alert(error.message);
+          return;
+        }
+      } else {
+        categories.push({ id: Date.now().toString(), name });
+        localStorage.setItem('yt_categories', JSON.stringify(categories));
+      }
+
+      await loadData();
+      closeCatModal();
+    });
+
+    // Utilities
+    async function deleteLink(idOrIdx) {
+      if (!confirm('Delete this link?')) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session && isNaN(Number(idOrIdx))) {
+        const { error } = await supabase
+          .from('links')
+          .delete()
+          .eq('id', idOrIdx);
+        
+        if (error) {
+          alert(error.message);
+          return;
+        }
+      } else {
+        const index = links.findIndex(l => l.id === idOrIdx);
+        if (index !== -1) {
+           links.splice(index, 1);
+           localStorage.setItem('yt_links', JSON.stringify(links));
+        }
+      }
+      
+      await loadData();
+    }
+
+    const openBtn = document.getElementById('open-add-modal');
+    if (openBtn) openBtn.onclick = () => addModal?.classList.replace('hidden', 'flex');
+    
+    const openCatBtn = document.getElementById('add-category-btn');
+    if (openCatBtn) openCatBtn.onclick = () => catModal?.classList.replace('hidden', 'flex');
+
+    const closeModal = () => {
+      addModal?.classList.replace('flex', 'hidden');
+      addForm?.reset();
+      fetchedFields?.classList.add('hidden');
+      currentMeta = null;
+    };
+
+    const closeCatModal = () => {
+      catModal?.classList.replace('flex', 'hidden');
+      catForm?.reset();
+    };
+
+    document.getElementById('close-modal')?.addEventListener('click', closeModal);
+    document.getElementById('close-cat-modal')?.addEventListener('click', closeCatModal);
+
+    document.getElementById('search-links')?.addEventListener('input', (e) => {
+      const term = (e.target as HTMLInputElement).value.toLowerCase();
+      const filtered = links.filter(l => 
+        (l.title || '').toLowerCase().includes(term) || 
+        (l.url || '').toLowerCase().includes(term)
+      );
+      renderLinks(filtered);
+    });
+
+    loadData();
+  </script>
+</Layout>

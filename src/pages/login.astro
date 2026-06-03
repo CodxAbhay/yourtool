@@ -1,0 +1,256 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Authentication | yourtool.in">
+  <div class="mx-auto max-w-md px-4 py-24 sm:px-6 lg:px-8">
+    <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-100 dark:border-zinc-800">
+        <button id="tab-login" class="flex-1 py-4 text-sm font-semibold border-b-2 border-black dark:border-white text-black dark:text-white transition-all">
+          Sign In
+        </button>
+        <button id="tab-signup" class="flex-1 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-all">
+          Sign Up
+        </button>
+      </div>
+
+      <div class="p-8">
+        <div class="text-center mb-8">
+          <h1 id="auth-title" class="text-2xl font-bold text-black dark:text-white">Welcome back</h1>
+          <p id="auth-subtitle" class="mt-2 text-sm text-gray-600 dark:text-zinc-400">Sign in to your personal workspace.</p>
+        </div>
+
+        <form id="auth-form" class="space-y-4">
+          <div id="name-field" class="hidden">
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Full Name</label>
+            <input 
+              type="text" 
+              name="name" 
+              id="name" 
+              placeholder="John Doe"
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white px-4 py-2 border" 
+            />
+          </div>
+          <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Email address</label>
+            <input 
+              type="email" 
+              name="email" 
+              id="email" 
+              placeholder="name@example.com"
+              required 
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white px-4 py-2 border" 
+            />
+          </div>
+          <div>
+            <label for="password" class="block text-sm font-medium text-gray-700 dark:text-zinc-300">Password</label>
+            <input 
+              type="password" 
+              name="password" 
+              id="password" 
+              placeholder="••••••••"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-sm focus:border-black dark:focus:border-white focus:ring-black dark:focus:ring-white px-4 py-2 border" 
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            id="submit-btn"
+            class="w-full rounded-md bg-black dark:bg-white px-4 py-3 text-sm font-semibold text-white dark:text-black shadow-sm hover:bg-gray-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          >
+            Sign In
+          </button>
+        </form>
+
+        <div id="magic-link-section" class="mt-6 text-center">
+          <div class="relative mb-6">
+            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+              <div class="w-full border-t border-gray-100 dark:border-zinc-800"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="bg-white dark:bg-zinc-900 px-2 text-gray-500 dark:text-zinc-500">Or continue with</span>
+            </div>
+          </div>
+          
+          <button 
+            type="button" 
+            id="magic-link-btn"
+            class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
+          >
+            Send a magic link to your email
+          </button>
+        </div>
+
+        <div id="auth-message" class="hidden mt-6 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 p-4 text-center text-emerald-700 dark:text-emerald-400 text-sm border border-emerald-100 dark:border-emerald-800">
+        </div>
+
+        <div id="error-message" class="hidden mt-6 rounded-lg bg-red-50 dark:bg-red-900/30 p-4 text-center text-red-700 dark:text-red-400 text-sm border border-red-100 dark:border-red-800">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { supabase } from '../lib/supabase';
+
+    const form = document.getElementById('auth-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const magicLinkBtn = document.getElementById('magic-link-btn') as HTMLButtonElement;
+    const magicLinkSection = document.getElementById('magic-link-section');
+    const message = document.getElementById('auth-message');
+    const errorMessage = document.getElementById('error-message');
+    
+    const tabLogin = document.getElementById('tab-login') as HTMLButtonElement;
+    const tabSignup = document.getElementById('tab-signup') as HTMLButtonElement;
+    
+    const title = document.getElementById('auth-title');
+    const subtitle = document.getElementById('auth-subtitle');
+    const nameField = document.getElementById('name-field');
+    const nameInput = document.getElementById('name') as HTMLInputElement;
+
+    let isLogin = true;
+
+    // Check session on load
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = '/workspace';
+      }
+    };
+    init();
+
+    function updateUI() {
+      if (isLogin) {
+        tabLogin.classList.add('border-black', 'dark:border-white', 'text-black', 'dark:text-white');
+        tabLogin.classList.remove('border-transparent', 'text-gray-500', 'dark:text-zinc-400');
+        
+        tabSignup.classList.remove('border-black', 'dark:border-white', 'text-black', 'dark:text-white');
+        tabSignup.classList.add('border-transparent', 'text-gray-500', 'dark:text-zinc-400');
+        
+        title!.textContent = 'Welcome back';
+        subtitle!.textContent = 'Sign in to your personal workspace.';
+        submitBtn!.textContent = 'Sign In';
+        nameField?.classList.add('hidden');
+        nameInput.required = false;
+        magicLinkSection?.classList.remove('hidden');
+      } else {
+        tabSignup.classList.add('border-black', 'dark:border-white', 'text-black', 'dark:text-white');
+        tabSignup.classList.remove('border-transparent', 'text-gray-500', 'dark:text-zinc-400');
+        
+        tabLogin.classList.remove('border-black', 'dark:border-white', 'text-black', 'dark:text-white');
+        tabLogin.classList.add('border-transparent', 'text-gray-500', 'dark:text-zinc-400');
+        
+        title!.textContent = 'Create an account';
+        subtitle!.textContent = 'Join yourtool.in and manage your links.';
+        submitBtn!.textContent = 'Sign Up';
+        nameField?.classList.remove('hidden');
+        nameInput.required = true;
+        magicLinkSection?.classList.add('hidden');
+      }
+      errorMessage?.classList.add('hidden');
+      message?.classList.add('hidden');
+    }
+
+    tabLogin.onclick = () => { isLogin = true; updateUI(); };
+    tabSignup.onclick = () => { isLogin = false; updateUI(); };
+
+    function showError(msg: string) {
+      if (errorMessage) {
+        errorMessage.textContent = msg;
+        errorMessage.classList.remove('hidden');
+      }
+      message?.classList.add('hidden');
+    }
+
+    function showMessage(msg: string) {
+      if (message) {
+        message.textContent = msg;
+        message.classList.remove('hidden');
+      }
+      errorMessage?.classList.add('hidden');
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      errorMessage?.classList.add('hidden');
+      message?.classList.add('hidden');
+
+      const formData = new FormData(form);
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+      const name = formData.get('name') as string;
+
+      try {
+        if (isLogin) {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          window.location.href = '/workspace';
+        } else {
+          const { data, error } = await supabase.auth.signUp({ 
+            email, 
+            password,
+            options: {
+              data: {
+                full_name: name,
+              },
+              emailRedirectTo: window.location.origin + '/workspace',
+            }
+          });
+          if (error) throw error;
+          
+          if (data.session) {
+            window.location.href = '/workspace';
+          } else if (data.user) {
+            // If email confirmation is disabled in Supabase, data.session might still be null 
+            // but we can try logging in immediately.
+            const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+            if (!loginError) {
+              window.location.href = '/workspace';
+            } else {
+              showMessage('Signup successful! You can now sign in.');
+              isLogin = true;
+              updateUI();
+            }
+          }
+        }
+      } catch (err: any) {
+        showError(err.message || 'An unexpected error occurred');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    };
+
+    magicLinkBtn.onclick = async () => {
+      const email = (document.getElementById('email') as HTMLInputElement).value;
+      if (!email) {
+        showError('Please enter your email address first.');
+        return;
+      }
+
+      magicLinkBtn.disabled = true;
+      errorMessage?.classList.add('hidden');
+      message?.classList.add('hidden');
+
+      try {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.origin + '/workspace',
+          },
+        });
+        if (error) throw error;
+        showMessage('Check your email for the magic link!');
+      } catch (err: any) {
+        showError(err.message);
+      } finally {
+        magicLinkBtn.disabled = false;
+      }
+    };
+  </script>
+</Layout>
+
+
+
