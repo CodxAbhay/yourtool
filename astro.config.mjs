@@ -9,7 +9,9 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://yourtool.in',
   output: 'server',
-  adapter: cloudflare(),
+  adapter: cloudflare({
+    mode: 'directory'
+  }),
 
   vite: {
     plugins: [tailwindcss()],
