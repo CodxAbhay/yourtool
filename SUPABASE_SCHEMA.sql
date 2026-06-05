@@ -23,6 +23,7 @@ create table links (
   description text,
   favicon_url text,
   category_id uuid references categories on delete set null,
+  type text default 'website' check (type in ('tool', 'website')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -36,6 +37,7 @@ create table tools_directory (
   category text, -- Deprecated in favor of category_id
   category_id uuid references categories(id) on delete set null,
   upvotes integer default 0,
+  type text default 'tool' check (type in ('tool', 'website')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -48,6 +50,7 @@ create table submissions (
   favicon_url text,
   category text,
   status text default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  type text default 'tool' check (type in ('tool', 'website')),
   user_id uuid references auth.users on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

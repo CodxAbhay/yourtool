@@ -18,7 +18,7 @@ import Layout from '../layouts/Layout.astro';
       <div class="p-8">
         <div class="text-center mb-8">
           <h1 id="auth-title" class="text-2xl font-bold text-black dark:text-white">Welcome back</h1>
-          <p id="auth-subtitle" class="mt-2 text-sm text-gray-600 dark:text-zinc-400">Sign in to your personal workspace.</p>
+          <p id="auth-subtitle" class="mt-2 text-sm text-gray-600 dark:text-zinc-400">Sign in to your personal toolkit.</p>
         </div>
 
         <form id="auth-form" class="space-y-4">
@@ -116,7 +116,7 @@ import Layout from '../layouts/Layout.astro';
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        window.location.href = '/workspace';
+        window.location.href = '/my-tools';
       }
     };
     init();
@@ -130,7 +130,7 @@ import Layout from '../layouts/Layout.astro';
         tabSignup.classList.add('border-transparent', 'text-gray-500', 'dark:text-zinc-400');
         
         title!.textContent = 'Welcome back';
-        subtitle!.textContent = 'Sign in to your personal workspace.';
+        subtitle!.textContent = 'Sign in to your personal toolkit.';
         submitBtn!.textContent = 'Sign In';
         nameField?.classList.add('hidden');
         nameInput.required = false;
@@ -187,7 +187,7 @@ import Layout from '../layouts/Layout.astro';
         if (isLogin) {
           const { error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          window.location.href = '/workspace';
+          window.location.href = '/my-tools';
         } else {
           const { data, error } = await supabase.auth.signUp({ 
             email, 
@@ -196,19 +196,19 @@ import Layout from '../layouts/Layout.astro';
               data: {
                 full_name: name,
               },
-              emailRedirectTo: window.location.origin + '/workspace',
+              emailRedirectTo: window.location.origin + '/my-tools',
             }
           });
           if (error) throw error;
           
           if (data.session) {
-            window.location.href = '/workspace';
+            window.location.href = '/my-tools';
           } else if (data.user) {
             // If email confirmation is disabled in Supabase, data.session might still be null 
             // but we can try logging in immediately.
             const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
             if (!loginError) {
-              window.location.href = '/workspace';
+              window.location.href = '/my-tools';
             } else {
               showMessage('Signup successful! You can now sign in.');
               isLogin = true;
@@ -238,7 +238,7 @@ import Layout from '../layouts/Layout.astro';
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: window.location.origin + '/workspace',
+            emailRedirectTo: window.location.origin + '/my-tools',
           },
         });
         if (error) throw error;

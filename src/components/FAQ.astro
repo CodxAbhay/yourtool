@@ -2,15 +2,15 @@
 const faqs = [
   {
     question: "What is yourtool.in?",
-    answer: "yourtool.in is a hybrid productivity platform that combines a personal link-management workspace with a public directory of curated tech tools. You can use it to privately organize your daily working links or browse our 'Hidden Gems' directory to discover over 100 of the best websites, AI generators, and productivity apps on the internet."
+    answer: "yourtool.in is a hybrid productivity platform that combines a personal toolkit with a public directory of curated tech tools. You can use it to privately organize your daily working links or browse our 'Hidden Gems' directory to discover over 100 of the best websites, AI generators, and productivity apps on the internet."
   },
   {
-    question: "Do I need to create an account to use the workspace?",
-    answer: "No, you do not need an account to get started. You can use the personal workspace as a guest, and your links and categories will be saved directly to your browser. If you decide to sign up later, all of your saved data will automatically sync and merge into your new secure profile."
+    question: "Do I need to create an account to use My Tools?",
+    answer: "No, you do not need an account to get started. You can use My Tools as a guest, and your links and categories will be saved directly to your browser. If you decide to sign up later, all of your saved data will automatically sync and merge into your new secure profile."
   },
   {
-    question: "How does the personal workspace work?",
-    answer: "The workspace acts as your private daily dashboard. When you paste an important website link, the platform automatically fetches its title, description, and logo. You can organize these links into custom categories, making it incredibly easy to search and find exactly what you need for your daily workflow."
+    question: "How does the personal toolkit work?",
+    answer: "My Tools acts as your private daily dashboard. When you paste an important website link, the platform automatically fetches its title, description, and logo. You can organize these links into custom categories, making it incredibly easy to search and find exactly what you need for your daily workflow."
   },
   {
     question: "What is the Hidden Gems directory?",
@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     question: "Is yourtool.in free to use?",
-    answer: "Yes, using the private workspace to manage your links and exploring the public Hidden Gems directory is 100% free for all users."
+    answer: "Yes, using My Tools to manage your links and exploring the public Hidden Gems directory is 100% free for all users."
   }
 ];
 
@@ -72,7 +72,7 @@ const schema = {
 </section>
 
 <!-- SEO Structured Data -->
-<script type="application/ld+json" set:html={JSON.stringify(schema)} />
+<script type="application/ld+json" is:inline set:html={JSON.stringify(schema)} />
 
 <style>
   /* Hide default details marker */

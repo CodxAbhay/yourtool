@@ -9,13 +9,13 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://yourtool.in',
   output: 'server',
-  adapter: cloudflare({
-    mode: 'directory'
-  }),
+  adapter: cloudflare(),
 
   vite: {
     plugins: [tailwindcss()],
   },
 
-  integrations: [sitemap()],
+  integrations: [sitemap({
+    filter: (page) => !page.includes('/admin'),
+  })],
 });

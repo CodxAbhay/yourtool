@@ -10,8 +10,30 @@
   color-scheme: dark;
 }
 
+/* Global Transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
 body {
-  @apply transition-colors duration-300;
+  @apply antialiased text-gray-900 dark:text-zinc-100 bg-white dark:bg-zinc-950 transition-colors duration-300;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Satisfaction effects */
+.hover-lift {
+  @apply transition-transform hover:-translate-y-1 active:scale-95;
+}
+
+.scale-up {
+  animation: scale-up 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes scale-up {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* Custom Scrollbar for Dark Mode */
@@ -25,4 +47,38 @@ body {
 
 .dark ::-webkit-scrollbar-thumb {
   @apply bg-zinc-800 rounded-full border-2 border-zinc-950 hover:bg-zinc-700;
+}
+
+@layer utilities {
+  .animate-in {
+    animation-delay: var(--animation-delay, 0ms);
+    animation-duration: var(--animation-duration, 500ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-in-from-top {
+    from { transform: translateY(-1rem); }
+    to { transform: translateY(0); }
+  }
+
+  @keyframes slide-in-from-right {
+    from { transform: translateX(1rem); }
+    to { transform: translateX(0); }
+  }
+
+  @keyframes zoom-in {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .fade-in { animation-name: fade-in; }
+  .slide-in-from-top-4 { animation-name: slide-in-from-top; }
+  .slide-in-from-right-8 { animation-name: slide-in-from-right; }
+  .zoom-in { animation-name: zoom-in; }
 }

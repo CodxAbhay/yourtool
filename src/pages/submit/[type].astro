@@ -1,0 +1,208 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = true;
+
+export function getStaticPaths() {
+  return [
+    { params: { type: 'tool' } },
+    { params: { type: 'website' } },
+  ];
+}
+
+const { type } = Astro.params;
+const isTool = type === 'tool';
+---
+
+<Layout title={`Submit ${isTool ? 'Tool' : 'Website'} | yourtool.in`}>
+  <div class="mx-auto max-w-3xl px-4 py-24 sm:px-6 lg:px-8">
+    <div class="text-center">
+      <h1 class="text-3xl font-extrabold tracking-tight text-black dark:text-white sm:text-4xl">
+        Submit a <span class={isTool ? "text-blue-600" : "text-black dark:text-zinc-400"}>{isTool ? 'Tool' : 'Website'}</span>
+      </h1>
+      <p class="mt-4 text-lg text-gray-600 dark:text-zinc-400">
+        {isTool 
+          ? "Share a software, library, or SaaS with the community. We'll review it shortly."
+          : "Share a useful website, article, or resource. Help others discover hidden gems."}
+      </p>
+    </div>
+
+    <form id="submission-form" class="mt-16 space-y-8 bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-xl">
+      <input type="hidden" id="type-input" value={type} />
+      <input type="hidden" id="favicon-url-input" />
+      
+      <div class="space-y-6">
+        <div>
+          <label for="url" class="block text-sm font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">URL</label>
+          <div class="mt-2 flex gap-2">
+            <input 
+              type="url" 
+              name="url" 
+              id="url-input" 
+              required 
+              placeholder="https://example.com" 
+              class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 px-4 py-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            />
+            <button 
+              type="button" 
+              id="fetch-meta-btn" 
+              class="rounded-xl bg-gray-100 dark:bg-zinc-800 px-6 py-4 text-xs font-bold hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors uppercase whitespace-nowrap"
+            >
+              Fetch
+            </button>
+          </div>
+        </div>
+
+        <div id="meta-fields" class="hidden space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div>
+            <label for="title" class="block text-sm font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">Title</label>
+            <input 
+              type="text" 
+              name="title" 
+              id="title-input" 
+              required 
+              class="mt-2 block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 px-4 py-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            />
+          </div>
+
+          <div>
+            <label for="description" class="block text-sm font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">Description</label>
+            <textarea 
+              name="description" 
+              id="description-input" 
+              rows="3" 
+              required
+              class="mt-2 block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 px-4 py-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            ></textarea>
+          </div>
+
+          <div>
+            <label for="category" class="block text-sm font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">Category (Optional)</label>
+            <input 
+              type="text" 
+              name="category" 
+              id="category-input" 
+              placeholder="Design, Development, AI..." 
+              class="mt-2 block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 px-4 py-4 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4">
+        <button 
+          type="submit" 
+          id="submit-btn"
+          class="w-full rounded-2xl bg-black dark:bg-white px-8 py-4 text-sm font-bold text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 dark:shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Submit for Review
+        </button>
+      </div>
+    </form>
+
+    <div id="success-message" class="hidden mt-16 text-center animate-in zoom-in duration-500">
+      <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 mb-8">
+        <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h2 class="text-3xl font-bold text-black dark:text-white">Submission Successful!</h2>
+      <p class="mt-4 text-lg text-gray-600 dark:text-zinc-400">
+        Thank you for contributing to the community. Your submission is now pending review.
+      </p>
+      <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/directory" class="rounded-xl border border-gray-200 dark:border-zinc-800 px-8 py-3 text-sm font-bold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all">Back to Directory</a>
+        <button onclick="window.location.reload()" class="rounded-xl bg-black dark:bg-white px-8 py-3 text-sm font-bold text-white dark:text-black">Submit Another</button>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  const form = document.getElementById('submission-form') as HTMLFormElement;
+  const urlInput = document.getElementById('url-input') as HTMLInputElement;
+  const titleInput = document.getElementById('title-input') as HTMLInputElement;
+  const descInput = document.getElementById('description-input') as HTMLTextAreaElement;
+  const faviconInput = document.getElementById('favicon-url-input') as HTMLInputElement;
+  const fetchBtn = document.getElementById('fetch-meta-btn') as HTMLButtonElement;
+  const metaFields = document.getElementById('meta-fields');
+  const typeInput = document.getElementById('type-input') as HTMLInputElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const successMessage = document.getElementById('success-message');
+
+  fetchBtn?.addEventListener('click', async () => {
+    const url = urlInput.value;
+    if (!url) return;
+
+    try {
+      fetchBtn.disabled = true;
+      fetchBtn.textContent = '...';
+      
+      const res = await fetch('/api/fetch-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const meta = await res.json();
+      
+      if (titleInput) titleInput.value = meta.title || '';
+      if (descInput) descInput.value = meta.description || '';
+      if (faviconInput) faviconInput.value = meta.favicon_url || '';
+      
+      metaFields?.classList.remove('hidden');
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = 'FETCH';
+    } catch (e) {
+      console.error(e);
+      fetchBtn.disabled = false;
+      fetchBtn.textContent = 'FETCH';
+      metaFields?.classList.remove('hidden');
+    }
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const submission = {
+      url: urlInput.value,
+      title: titleInput.value,
+      description: descInput.value,
+      favicon_url: faviconInput.value,
+      category: (document.getElementById('category-input') as HTMLInputElement).value,
+      type: typeInput.value,
+      user_id: session?.user?.id || null,
+      status: 'pending'
+    };
+
+    const { error } = await supabase.from('submissions').insert([submission]);
+
+    if (error) {
+      alert(error.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit for Review';
+    } else {
+      form.classList.add('hidden');
+      successMessage?.classList.remove('hidden');
+      
+      // Toast Notification (custom)
+      showToast('Submission successful!');
+    }
+  });
+
+  function showToast(message: string) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-8 right-8 z-[100] bg-black dark:bg-white text-white dark:text-black px-6 py-4 rounded-2xl font-bold shadow-2xl animate-in slide-in-from-right-8 duration-500';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('animate-out', 'fade-out', 'slide-out-to-right-8');
+      setTimeout(() => toast.remove(), 500);
+    }, 3000);
+  }
+</script>

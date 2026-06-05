@@ -8,10 +8,9 @@
       </a>
       <div class="hidden md:flex md:items-center md:gap-6">
         <a href="/directory" class="text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Hidden Gems</a>
-        <a href="/workspace" class="text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Workspace</a>
+        <a href="/my-tools" class="text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">My Workspace</a>
         <a href="/about-us" class="text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">About</a>
         <a href="/how-to-use" class="text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 text-gray-900 dark:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all">How To Use</a>
-        <a href="/contact-us" class="text-sm font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Contact</a>
       </div>
     </div>
     <div class="flex items-center gap-4">
@@ -53,10 +52,9 @@
   <div id="mobile-menu" class="hidden md:hidden border-t border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-6 space-y-4">
     <div class="flex flex-col gap-4">
       <a href="/directory" class="text-lg font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Hidden Gems</a>
-      <a href="/workspace" class="text-lg font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Workspace</a>
+      <a href="/my-tools" class="text-lg font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">My Workspace</a>
       <a href="/about-us" class="text-lg font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">About</a>
       <a href="/how-to-use" class="text-lg font-medium px-4 py-3 rounded-lg border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all text-center">How To Use</a>
-      <a href="/contact-us" class="text-lg font-medium text-gray-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Contact</a>
     </div>
     <div class="pt-4 border-t border-gray-100 dark:border-zinc-800 flex flex-col gap-4">
        <a href="/submit" class="flex items-center justify-center rounded-lg bg-black dark:bg-white px-4 py-3 text-sm font-bold text-white dark:text-black">
@@ -102,15 +100,15 @@
     const closeIcon = document.getElementById('close-icon');
 
     mobileMenuBtn?.addEventListener('click', () => {
-      const isHidden = mobileMenu.classList.contains('hidden');
+      const isHidden = mobileMenu?.classList.contains('hidden');
       if (isHidden) {
-        mobileMenu.classList.remove('hidden');
-        menuIcon.classList.add('hidden');
-        closeIcon.classList.remove('hidden');
+        mobileMenu?.classList.remove('hidden');
+        menuIcon?.classList.add('hidden');
+        closeIcon?.classList.remove('hidden');
       } else {
-        mobileMenu.classList.add('hidden');
-        menuIcon.classList.remove('hidden');
-        closeIcon.classList.add('hidden');
+        mobileMenu?.classList.add('hidden');
+        menuIcon?.classList.remove('hidden');
+        closeIcon?.classList.add('hidden');
       }
     });
   })();

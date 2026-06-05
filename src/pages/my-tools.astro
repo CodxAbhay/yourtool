@@ -1,0 +1,771 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+// Check if user is logged in
+const { data: { session } } = await supabase.auth.getSession();
+const user = session?.user;
+---
+
+<Layout title="My Workspace | yourtool.in">
+  <style is:global>
+    .reorder-active .drag-handle {
+      display: flex !important;
+      animation: pulse-blue 2s infinite;
+    }
+    @keyframes pulse-blue {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    .drag-handle {
+      cursor: grab !important;
+    }
+    .drag-handle:active {
+      cursor: grabbing !important;
+    }
+  </style>
+
+  <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight text-black dark:text-white sm:text-4xl">My Workspace</h1>
+        <p class="mt-2 text-gray-600 dark:text-zinc-400">
+          {user ? `Welcome back. Manage your tools and websites in one place.` : 'Guest Mode: Your resources are saved locally.'}
+        </p>
+      </div>
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+        <button id="toggle-reorder" class="rounded-full border-2 border-blue-600 px-6 py-3 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-all shadow-sm text-center">
+          Reorder Mode: OFF
+        </button>
+        <button id="open-add-modal" class="rounded-full bg-black dark:bg-white px-8 py-3 text-sm font-bold text-white dark:text-black hover:scale-105 active:scale-95 transition-all shadow-xl text-center">
+          Add New Resource
+        </button>
+      </div>
+    </div>
+
+    <!-- View Toggles & Search -->
+    <div class="mt-12 flex flex-col md:flex-row gap-6 items-center justify-between">
+      <div class="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-2xl w-full md:w-auto">
+        <button data-view="all" class="view-toggle-btn flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all bg-white dark:bg-zinc-900 shadow-sm text-black dark:text-white">All</button>
+        <button data-view="tool" class="view-toggle-btn flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-gray-500 hover:text-black dark:hover:text-white">Tools</button>
+        <button data-view="website" class="view-toggle-btn flex-1 md:flex-none px-6 py-2.5 rounded-xl text-sm font-bold transition-all text-gray-500 hover:text-black dark:hover:text-white">Websites</button>
+      </div>
+
+      <div class="relative w-full md:max-w-md">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <input 
+          type="text" 
+          id="search-links" 
+          placeholder="Search your workspace..." 
+          class="block w-full rounded-2xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 pl-11 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-black dark:focus:ring-white transition-all shadow-sm"
+        />
+      </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="mt-8 flex flex-wrap items-center gap-3 pb-6 border-b border-gray-100 dark:border-zinc-800">
+      <div class="relative">
+        <select 
+          id="category-filter" 
+          class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-2 text-xs font-bold appearance-none cursor-pointer pr-10"
+        >
+          <option value="all">All Categories</option>
+        </select>
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+      
+      <button id="add-category-btn" class="flex items-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-zinc-700 px-4 py-2 text-xs font-bold text-gray-500 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white transition-all">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+        New Category
+      </button>
+    </div>
+
+    <!-- Links Grid -->
+    <div id="links-container" class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 min-h-[400px]">
+      <!-- Loading State -->
+      <div class="col-span-full py-32 flex flex-col items-center justify-center animate-pulse">
+        <div class="h-8 w-8 rounded-full border-4 border-gray-200 dark:border-zinc-800 border-t-black dark:border-t-white animate-spin mb-4"></div>
+        <p class="text-sm font-bold text-gray-400 uppercase tracking-widest">Organizing Workspace...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-[2rem] bg-white dark:bg-zinc-900 p-6 sm:p-8 shadow-2xl border dark:border-zinc-800 animate-in zoom-in duration-300">
+      <div class="flex items-center justify-between mb-8">
+        <h2 id="modal-title" class="text-2xl font-black text-black dark:text-white tracking-tight">Add Resource</h2>
+        <button id="close-modal" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="add-link-form" class="space-y-6">
+        <div>
+          <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Resource Type</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="relative cursor-pointer">
+              <input type="radio" name="type" value="tool" checked class="peer sr-only" />
+              <div class="flex items-center justify-center py-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 text-sm font-bold text-gray-400 peer-checked:border-black dark:peer-checked:border-white peer-checked:bg-black dark:peer-checked:bg-white peer-checked:text-white dark:peer-checked:text-black transition-all">Tool</div>
+            </label>
+            <label class="relative cursor-pointer">
+              <input type="radio" name="type" value="website" class="peer sr-only" />
+              <div class="flex items-center justify-center py-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 text-sm font-bold text-gray-400 peer-checked:border-black dark:peer-checked:border-white peer-checked:bg-black dark:peer-checked:bg-white peer-checked:text-white dark:peer-checked:text-black transition-all">Website</div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">URL</label>
+          <div class="flex gap-2">
+            <input type="url" id="url-input" required placeholder="https://..." class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-black dark:focus:ring-white transition-all" />
+            <button type="button" id="toolkit-fetch-btn" class="rounded-xl bg-gray-100 dark:bg-zinc-800 px-4 py-3 text-[10px] font-black uppercase hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors">Fetch</button>
+          </div>
+        </div>
+
+        <div id="fetched-fields" class="hidden space-y-6 animate-in slide-in-from-top-4 duration-500">
+          <div>
+            <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Title</label>
+            <input type="text" id="title-input" class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-black dark:focus:ring-white transition-all" />
+          </div>
+          <div>
+            <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Description</label>
+            <textarea id="desc-input" rows="2" class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"></textarea>
+          </div>
+          <input type="hidden" id="favicon-url-input" />
+        </div>
+        
+        <div>
+          <label class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">Category</label>
+          <select id="category-select" class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 text-sm font-medium appearance-none cursor-pointer focus:ring-2 focus:ring-black dark:focus:ring-white">
+            <option value="">General</option>
+          </select>
+        </div>
+
+        <button type="submit" id="save-link" class="w-full rounded-2xl bg-black dark:bg-white py-4 text-sm font-black text-white dark:text-black shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 mt-4">
+          Save to Workspace
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Category Modal -->
+  <div id="category-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="w-full max-w-sm rounded-[2rem] bg-white dark:bg-zinc-900 p-8 shadow-2xl border dark:border-zinc-800">
+      <h2 class="text-xl font-black text-black dark:text-white tracking-tight mb-6">Create Category</h2>
+      <form id="add-category-form" class="space-y-6">
+        <input type="text" id="cat-name-input" required placeholder="Design, AI, News..." class="block w-full rounded-xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-black dark:focus:ring-white transition-all" />
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="close-cat-modal" class="flex-1 rounded-xl border border-gray-200 dark:border-zinc-800 py-3 text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all">Cancel</button>
+          <button type="submit" class="flex-1 rounded-xl bg-black dark:bg-white py-3 text-sm font-bold text-white dark:text-black hover:scale-105 active:scale-95 transition-all">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    import { supabase } from '../lib/supabase';
+    import Sortable from 'sortablejs';
+
+    let links: any[] = [];
+    let categories: any[] = [];
+    let currentCategory = 'all';
+    let currentView = 'all'; // all, tool, website
+    let editingLinkId: string | null = null;
+    let reorderMode = false;
+
+    // Bug 3: XSS prevention utility
+    function escapeHtml(str: string): string {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    const container = document.getElementById('links-container');
+    const catFilter = document.getElementById('category-filter') as HTMLSelectElement;
+    const catSelect = document.getElementById('category-select') as HTMLSelectElement;
+    
+    const addModal = document.getElementById('add-modal');
+    const catModal = document.getElementById('category-modal');
+    const modalTitle = document.getElementById('modal-title');
+    
+    const addForm = document.getElementById('add-link-form') as HTMLFormElement;
+    const catForm = document.getElementById('add-category-form') as HTMLFormElement;
+    
+    const urlInput = document.getElementById('url-input') as HTMLInputElement;
+    const titleInput = document.getElementById('title-input') as HTMLInputElement;
+    const descInput = document.getElementById('desc-input') as HTMLTextAreaElement;
+    const faviconUrlInput = document.getElementById('favicon-url-input') as HTMLInputElement;
+    const fetchedFields = document.getElementById('fetched-fields');
+    const fetchBtn = document.getElementById('toolkit-fetch-btn') as HTMLButtonElement;
+    const saveBtn = document.getElementById('save-link') as HTMLButtonElement;
+    const reorderBtn = document.getElementById('toggle-reorder');
+    
+    // Initialize Sortable
+    let sortableInstance: any = null;
+    function initSortable() {
+      try {
+        if (!container) return;
+        if (sortableInstance) sortableInstance.destroy();
+        
+        // Sorting only works when reorderMode is ON and no filters are applied
+        const isFiltered = (document.getElementById('search-links') as HTMLInputElement)?.value !== '' || currentCategory !== 'all';
+        const canSort = reorderMode && !isFiltered;
+
+        if (canSort) {
+          sortableInstance = new Sortable(container, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'opacity-20',
+            dragClass: 'shadow-2xl',
+            onEnd: async () => {
+              const items = Array.from(container.querySelectorAll('[data-id]'));
+              const newOrder = items.map((item, index) => ({
+                id: (item as HTMLElement).dataset.id,
+                position: index
+              }));
+              await saveOrder(newOrder);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Sortable initialization failed:', e);
+      }
+    }
+
+    async function saveOrder(newOrder: any[]) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          const updates = newOrder.map((item: any) => 
+            supabase.from('links').update({ position: item.position }).eq('id', item.id)
+          );
+          const results = await Promise.all(updates);
+          const error = results.find(r => r.error)?.error;
+          if (error) throw error;
+        } else {
+          newOrder.forEach((item: any) => {
+            const link = links.find(l => (l.id || '').toString() === item.id);
+            if (link) link.position = item.position;
+          });
+          links.sort((a, b) => (a.position || 0) - (b.position || 0));
+          localStorage.setItem('yt_links_v2', JSON.stringify(links));
+        }
+        showToast('New order saved');
+      } catch (err: any) {
+        console.error('Error saving order:', err);
+        showToast(err.message || 'Failed to save order', 'error');
+      }
+    }
+
+    // Load Data
+    async function loadData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Guest-to-Account data merge: migrate localStorage data on first login
+          await migrateGuestData(session.user.id);
+
+          const [{ data: catData, error: catError }, { data: linkData, error: linkError }] = await Promise.all([
+            supabase.from('categories').select('*').order('name'),
+            supabase.from('links').select('*').order('position', { ascending: true })
+          ]);
+          
+          if (catError) throw catError;
+          if (linkError) throw linkError;
+          
+          categories = catData || [];
+          links = linkData || [];
+          if (links.some(l => l.position === null || l.position === undefined)) {
+            links = links.map((l, idx) => ({ ...l, position: l.position ?? idx }));
+          }
+        } else {
+          const localLinks = localStorage.getItem('yt_links_v2');
+          links = localLinks ? JSON.parse(localLinks) : [];
+          links.sort((a, b) => (a.position || 0) - (b.position || 0));
+          const localCats = localStorage.getItem('yt_categories_v2');
+          categories = localCats ? JSON.parse(localCats) : [];
+        }
+        
+        renderCategories();
+        updateWorkspaceFilters();
+      } catch (err: any) {
+        console.error('Error loading data:', err);
+        showToast('Error loading workspace: ' + (err.message || 'Rate limit or network error'), 'error');
+        if (container) {
+           container.innerHTML = `
+            <div class="col-span-full py-32 flex flex-col items-center justify-center rounded-[2.5rem] border border-dashed border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10">
+              <div class="h-20 w-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6 text-red-500">
+                 <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <h3 class="text-xl font-black text-red-600 dark:text-red-400">Connection Error</h3>
+              <p class="mt-2 text-red-500/80 dark:text-red-400/80 text-center max-w-sm">Failed to connect to the server. Please try refreshing the page in a few minutes.</p>
+              <button onclick="window.location.reload()" class="mt-6 px-6 py-2 rounded-xl bg-red-600 text-white font-bold text-sm shadow-md hover:bg-red-700 transition-colors">Retry</button>
+            </div>
+           `;
+        }
+      }
+    }
+
+    // Migrate guest (localStorage) data to the user's Supabase account
+    async function migrateGuestData(userId: string) {
+      try {
+        const localLinksRaw = localStorage.getItem('yt_links_v2');
+        const localCatsRaw = localStorage.getItem('yt_categories_v2');
+
+        // Nothing to migrate
+        if (!localLinksRaw && !localCatsRaw) return;
+
+        const localLinks = localLinksRaw ? JSON.parse(localLinksRaw) : [];
+        const localCats = localCatsRaw ? JSON.parse(localCatsRaw) : [];
+
+        if (localLinks.length === 0 && localCats.length === 0) return;
+
+        // Map old local category IDs to new Supabase IDs
+        const catIdMap: Record<string, string> = {};
+
+        // Migrate categories first
+        if (localCats.length > 0) {
+          for (const cat of localCats) {
+            const { data, error } = await supabase
+              .from('categories')
+              .insert({ name: cat.name, user_id: userId })
+              .select('id')
+              .single();
+            
+            if (!error && data) {
+              catIdMap[cat.id] = data.id;
+            }
+          }
+        }
+
+        // Migrate links
+        if (localLinks.length > 0) {
+          const linksToInsert = localLinks.map((link: any, idx: number) => ({
+            user_id: userId,
+            url: link.url,
+            title: link.title || '',
+            description: link.description || '',
+            favicon_url: link.favicon_url || '',
+            category_id: link.category_id ? (catIdMap[link.category_id] || null) : null,
+            type: link.type || 'website',
+            position: link.position ?? idx
+          }));
+
+          await supabase.from('links').insert(linksToInsert);
+        }
+
+        // Clear localStorage after successful migration
+        localStorage.removeItem('yt_links_v2');
+        localStorage.removeItem('yt_categories_v2');
+
+        if (localLinks.length > 0 || localCats.length > 0) {
+          showToast(`Migrated ${localLinks.length} links from guest mode`);
+        }
+      } catch (err) {
+        console.error('Guest data migration error:', err);
+        // Don't block the app if migration fails — data stays in localStorage
+      }
+    }
+
+    function renderCategories() {
+      const options = '<option value="all">All Categories</option>' + 
+        '<option value="general">General</option>' +
+        categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+      
+      if (catFilter) catFilter.innerHTML = options;
+      if (catSelect) catSelect.innerHTML = '<option value="">General</option>' + categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+    }
+
+    // Filter Logic
+    function updateWorkspaceFilters() {
+      const term = (document.getElementById('search-links') as HTMLInputElement)?.value.toLowerCase() || '';
+      
+      let filtered = links;
+      
+      if (currentView !== 'all') {
+        filtered = filtered.filter(l => (l.type || 'website') === currentView);
+      }
+      
+      if (currentCategory !== 'all') {
+        if (currentCategory === 'general') {
+          filtered = filtered.filter(l => !l.category_id);
+        } else {
+          filtered = filtered.filter(l => l.category_id === currentCategory);
+        }
+      }
+
+      if (term) {
+        filtered = filtered.filter(l => {
+          const catName = categories.find(c => c.id === l.category_id)?.name || 'General';
+          return (l.title || '').toLowerCase().includes(term) || 
+                 (l.url || '').toLowerCase().includes(term) ||
+                 (l.description || '').toLowerCase().includes(term) ||
+                 catName.toLowerCase().includes(term);
+        });
+      }
+
+      renderLinks(filtered);
+    }
+
+    function renderLinks(displayLinks: any[]) {
+      if (!container) return;
+
+      if (displayLinks.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-32 flex flex-col items-center justify-center rounded-[2.5rem] border border-dashed border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 transition-all scale-up">
+            <div class="h-20 w-20 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-6 text-gray-400">
+               <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-black dark:text-white">Workspace is empty</h3>
+            <p class="mt-2 text-gray-500 dark:text-zinc-400 text-center max-w-sm">Start adding tools and websites to build your workspace.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (reorderMode) {
+        document.body.classList.add('reorder-active');
+      } else {
+        document.body.classList.remove('reorder-active');
+      }
+
+      container.innerHTML = displayLinks.map((link: any, idx: number) => {
+        const catName = categories.find(c => c.id === link.category_id)?.name || 'General';
+        const linkType = link.type || 'website';
+        const isTool = linkType === 'tool';
+        const id = link.id || idx.toString();
+        
+        return `
+          <div data-id="${id}" class="group relative flex flex-col rounded-[1.5rem] border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 hover:border-black dark:hover:border-white transition-all hover:shadow-2xl hover:-translate-y-1 animate-in zoom-in" style="--animation-delay: ${idx * 50}ms">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center gap-3">
+                <div class="drag-handle ${reorderMode ? 'flex' : 'hidden'} flex-shrink-0 cursor-grab active:cursor-grabbing px-2 py-1 rounded-md bg-blue-600 text-white border-2 border-blue-400 items-center gap-1 scale-110 z-10" title="Hold to drag">
+                  <span class="text-[8px] font-black uppercase tracking-tighter">DRAG</span>
+                  <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7 6a2 2 0 114 0 2 2 0 01-4 0zM7 10a2 2 0 114 0 2 2 0 01-4 0zM7 14a2 2 0 114 0 2 2 0 01-4 0zM11 6a2 2 0 114 0 2 2 0 01-4 0zM11 10a2 2 0 114 0 2 2 0 01-4 0zM11 14a2 2 0 114 0 2 2 0 01-4 0z" />
+                  </svg>
+                </div>
+                <div class="h-10 w-10 rounded-xl bg-gray-50 dark:bg-zinc-800 flex items-center justify-center border border-gray-100 dark:border-zinc-700">
+                  <img src="${escapeHtml(link.favicon_url || 'https://www.google.com/s2/favicons?sz=64&domain=' + link.url)}" class="h-6 w-6 rounded" alt="" loading="lazy" />
+                </div>
+                <span class="inline-flex items-center rounded-md px-2 py-0.5 text-[8px] font-black uppercase tracking-widest ${isTool ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30' : 'bg-gray-100 text-gray-600 dark:bg-zinc-800'}">
+                  ${escapeHtml(linkType)}
+                </span>
+              </div>
+              <div class="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <button data-id="${id}" class="edit-btn p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 hover:text-black dark:hover:text-white transition-all">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button data-id="${id}" class="delete-btn p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-all">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+            </div>
+            
+            <h3 class="mt-4 text-sm font-bold text-black dark:text-white truncate" title="${escapeHtml(link.title || '')}">${escapeHtml(link.title || 'Untitled')}</h3>
+            <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400 line-clamp-2 min-h-[32px]">${escapeHtml(link.description || 'No description provided.')}</p>
+            
+            <div class="mt-6 pt-4 border-t border-gray-100 dark:border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+              <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-black dark:bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white dark:text-black hover:scale-[1.05] active:scale-95 transition-all shadow-lg">
+                Open Link
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+              </a>
+              <div class="flex flex-col items-end gap-1">
+                <button data-id="${id}" data-type="${escapeHtml(linkType)}" class="move-btn text-[9px] font-black uppercase tracking-tighter text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all">Move to ${isTool ? 'Websites' : 'Tools'}</button>
+                <span class="text-[9px] font-bold text-gray-300 dark:text-zinc-700">${escapeHtml(catName)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Re-attach listeners after rendering
+      document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', (e) => deleteLink((e.currentTarget as HTMLElement).dataset.id || '')));
+      document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', (e) => openEditModal((e.currentTarget as HTMLElement).dataset.id || '')));
+      document.querySelectorAll('.move-btn').forEach(btn => btn.addEventListener('click', (e) => moveResource((e.currentTarget as HTMLElement).dataset.id || '', (e.currentTarget as HTMLElement).dataset.type || '')));
+      
+      initSortable();
+    }
+
+    // CRUD Logic
+    async function moveResource(id: string, currentType: string) {
+      const newType = currentType === 'tool' ? 'website' : 'tool';
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session && isNaN(Number(id))) {
+          const { error } = await supabase.from('links').update({ type: newType }).eq('id', id);
+          if (error) throw error;
+        } else {
+          const idx = links.findIndex(l => (l.id || '').toString() === id);
+          if (idx !== -1) {
+            links[idx].type = newType;
+            localStorage.setItem('yt_links_v2', JSON.stringify(links));
+          }
+        }
+        showToast(`Moved to ${newType === 'tool' ? 'Tools' : 'Websites'}`);
+        await loadData();
+      } catch (err: any) {
+        console.error('Error moving resource:', err);
+        showToast(err.message || 'Action failed', 'error');
+      }
+    }
+
+    async function deleteLink(id: string) {
+      if (!confirm('Are you sure you want to delete this resource?')) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session && isNaN(Number(id))) {
+          const { error } = await supabase.from('links').delete().eq('id', id);
+          if (error) throw error;
+        } else {
+          const idx = links.findIndex(l => (l.id || '').toString() === id);
+          if (idx !== -1) {
+            links.splice(idx, 1);
+            localStorage.setItem('yt_links_v2', JSON.stringify(links));
+          }
+        }
+        showToast('Resource deleted');
+        await loadData();
+      } catch (err: any) {
+        console.error('Error deleting resource:', err);
+        showToast(err.message || 'Action failed', 'error');
+      }
+    }
+
+    function openEditModal(id: string) {
+      const link = links.find(l => (l.id || '').toString() === id);
+      if (!link) return;
+
+      editingLinkId = id;
+      if (modalTitle) modalTitle.textContent = 'Edit Resource';
+      if (saveBtn) {
+        saveBtn.textContent = 'Update Resource';
+        saveBtn.disabled = false;
+      }
+      
+      if (urlInput) urlInput.value = link.url;
+      if (titleInput) titleInput.value = link.title || '';
+      if (descInput) descInput.value = link.description || '';
+      if (faviconUrlInput) faviconUrlInput.value = link.favicon_url || '';
+      if (catSelect) catSelect.value = link.category_id || '';
+      
+      const typeRadios = document.querySelectorAll('input[name="type"]') as NodeListOf<HTMLInputElement>;
+      typeRadios.forEach(r => { if (r.value === (link.type || 'website')) r.checked = true; });
+      
+      fetchedFields?.classList.remove('hidden');
+      addModal?.classList.replace('hidden', 'flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    addForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (saveBtn) saveBtn.disabled = true;
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const typeEl = document.querySelector('input[name="type"]:checked') as HTMLInputElement;
+        const type = typeEl ? typeEl.value : 'website';
+        const newLinkData = {
+          url: urlInput?.value || '',
+          title: titleInput?.value || urlInput?.value || '',
+          description: descInput?.value || '',
+          favicon_url: faviconUrlInput?.value || '',
+          category_id: catSelect?.value || null,
+          type: type
+        };
+
+        if (session) {
+          if (editingLinkId && isNaN(Number(editingLinkId))) {
+            const { error } = await supabase.from('links').update(newLinkData).eq('id', editingLinkId);
+            if (error) throw error;
+          } else {
+            const { error } = await supabase.from('links').insert([{ ...newLinkData, user_id: session.user.id, position: -1 }]);
+            if (error) throw error;
+          }
+        } else {
+          if (editingLinkId) {
+            const index = links.findIndex(l => (l.id || '').toString() === editingLinkId);
+            if (index !== -1) links[index] = { ...links[index], ...newLinkData };
+          } else {
+            links.unshift({ ...newLinkData, id: Date.now().toString(), created_at: new Date().toISOString(), position: -1 });
+          }
+          localStorage.setItem('yt_links_v2', JSON.stringify(links));
+        }
+        
+        showToast(editingLinkId ? 'Resource updated' : 'Resource added');
+        await loadData();
+        closeModal();
+      } catch (err: any) {
+        console.error('Error saving resource:', err);
+        showToast(err.message || 'Action failed', 'error');
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    });
+
+    // Fetch Meta
+    fetchBtn?.addEventListener('click', async () => {
+      const url = urlInput?.value;
+      if (!url) return;
+      if (fetchBtn) fetchBtn.textContent = '...';
+      try {
+        const res = await fetch('/api/fetch-meta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const meta = await res.json();
+        if (!res.ok || meta.error) {
+          showToast(meta.error || 'Failed to fetch metadata', 'error');
+          return;
+        }
+        if (titleInput) titleInput.value = meta.title || '';
+        if (descInput) descInput.value = meta.description || '';
+        if (faviconUrlInput) faviconUrlInput.value = meta.favicon_url || '';
+        fetchedFields?.classList.remove('hidden');
+      } catch (e) {
+        showToast('Network error while fetching metadata', 'error');
+      } finally {
+        if (fetchBtn) fetchBtn.textContent = 'Fetch';
+      }
+    });
+
+    // View Toggles
+    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        currentView = target.dataset.view || 'all';
+        
+        document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-zinc-900', 'shadow-sm', 'text-black', 'dark:text-white'));
+        target.classList.add('bg-white', 'dark:bg-zinc-900', 'shadow-sm', 'text-black', 'dark:text-white');
+        
+        updateWorkspaceFilters();
+      });
+    });
+
+    catFilter?.addEventListener('change', () => {
+      currentCategory = catFilter.value;
+      updateWorkspaceFilters();
+    });
+
+    document.getElementById('search-links')?.addEventListener('input', updateWorkspaceFilters);
+
+    // Reorder Toggle
+    reorderBtn?.addEventListener('click', () => {
+      reorderMode = !reorderMode;
+      if (reorderBtn) {
+        reorderBtn.textContent = `Reorder Mode: ${reorderMode ? 'ON' : 'OFF'}`;
+        reorderBtn.classList.toggle('bg-blue-600', reorderMode);
+        reorderBtn.classList.toggle('text-white', reorderMode);
+        reorderBtn.classList.toggle('text-blue-600', !reorderMode);
+      }
+      updateWorkspaceFilters();
+    });
+
+    // Categories
+    catForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById('cat-name-input') as HTMLInputElement;
+      const name = nameInput ? nameInput.value : '';
+      if (!name) return;
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          const { error } = await supabase.from('categories').insert([{ name, user_id: session.user.id }]);
+          if (error) throw error;
+        } else {
+          categories.push({ id: Date.now().toString(), name });
+          localStorage.setItem('yt_categories_v2', JSON.stringify(categories));
+        }
+        showToast('Category created');
+        await loadData();
+        closeCatModal();
+      } catch (err: any) {
+        console.error('Error creating category:', err);
+        showToast(err.message || 'Action failed', 'error');
+      }
+    });
+
+    // Toast & Modals
+    function showToast(message: string, type = 'success') {
+      const toast = document.createElement('div');
+      const bgColor = type === 'error' ? 'bg-red-600 dark:bg-red-500' : 'bg-black dark:bg-white';
+      const textColor = type === 'error' ? 'text-white' : 'text-white dark:text-black';
+      
+      toast.className = `fixed bottom-8 right-8 z-[100] ${bgColor} ${textColor} px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl animate-in slide-in-from-right-8 duration-500`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('animate-out', 'fade-out', 'slide-out-to-right-8');
+        setTimeout(() => toast.remove(), 500);
+      }, 4000);
+    }
+
+    const openBtn = document.getElementById('open-add-modal');
+    if (openBtn) {
+      openBtn.onclick = () => {
+        editingLinkId = null;
+        if (modalTitle) modalTitle.textContent = 'Add Resource';
+        if (saveBtn) {
+          saveBtn.textContent = 'Save to Workspace';
+          saveBtn.disabled = false;
+        }
+        
+        if (currentView !== 'all') {
+          const typeRadios = document.querySelectorAll('input[name="type"]') as NodeListOf<HTMLInputElement>;
+          typeRadios.forEach(r => { if (r.value === currentView) r.checked = true; });
+        }
+        
+        addModal?.classList.replace('hidden', 'flex');
+        document.body.style.overflow = 'hidden';
+      };
+    }
+    
+    const addCatBtn = document.getElementById('add-category-btn');
+    if (addCatBtn) addCatBtn.onclick = () => {
+      catModal?.classList.replace('hidden', 'flex');
+      document.body.style.overflow = 'hidden';
+    };
+    
+    const closeModal = () => { 
+      addModal?.classList.replace('flex', 'hidden'); 
+      if (addForm) addForm.reset(); 
+      if (fetchedFields) fetchedFields.classList.add('hidden'); 
+      editingLinkId = null;
+      document.body.style.overflow = '';
+    };
+    
+    const closeCatModal = () => { 
+      catModal?.classList.replace('flex', 'hidden'); 
+      if (catForm) catForm.reset();
+      document.body.style.overflow = '';
+    };
+    
+    const closeBtn = document.getElementById('close-modal');
+    if (closeBtn) closeBtn.onclick = closeModal;
+    
+    const closeCatBtn = document.getElementById('close-cat-modal');
+    if (closeCatBtn) closeCatBtn.onclick = closeCatModal;
+
+    // Bug 9: Close modals on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (addModal && !addModal.classList.contains('hidden')) closeModal();
+        if (catModal && !catModal.classList.contains('hidden')) closeCatModal();
+      }
+    });
+
+    loadData();
+  </script>
+</Layout>

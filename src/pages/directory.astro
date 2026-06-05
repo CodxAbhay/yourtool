@@ -3,10 +3,12 @@ import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 
 // Fetch tools and categories in parallel for efficiency
-const [{ data: tools, error: toolsError }, { data: categoriesData }] = await Promise.all([
+const [{ data: tools, error: toolsError }, { data: categoriesData, error: categoriesError }] = await Promise.all([
   supabase.from('tools_directory').select('*').order('upvotes', { ascending: false }),
   supabase.from('categories').select('id, name').is('user_id', null)
 ]);
+
+const hasError = !!toolsError || !!categoriesError;
 
 // Map category IDs to names for easy lookup
 const categoryMap = Object.fromEntries(categoriesData?.map(c => [c.id, c.name]) || []);
@@ -26,50 +28,88 @@ if (rawCategories.some(c => c.includes('Miscellaneous'))) {
 const categories = ['All', ...sortedCategories];
 ---
 
-<Layout title="Hidden Gems | yourtool.in" description="A curated list of highly useful websites, AI tools, and design resources.">
+<Layout title="Hidden Tools | yourtool.in" description="A curated list of highly useful developer tools, software, and AI resources.">
   <div class="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
     <!-- Header Section -->
     <div class="relative mb-16">
       <div class="max-w-2xl">
-        <div class="inline-flex items-center rounded-full bg-black/5 dark:bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-black/60 dark:text-white/60 ring-1 ring-inset ring-black/10 dark:ring-white/10 mb-6">
-          Community Curated
+        <div class="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20 mb-6">
+          Community Curated Gems
         </div>
         <h1 class="text-4xl font-bold tracking-tight text-black dark:text-white sm:text-5xl lg:text-7xl">
           Hidden Gems<span class="text-blue-600">.</span>
         </h1>
         <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-zinc-400 max-w-xl">
-          Discover highly useful tools and resources, curated and upvoted by the developer community.
+          Discover highly useful software, websites, and resources, curated and upvoted by the developer community.
         </p>
+        
+        <div class="mt-10">
+          <a href="/submit" class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-bold text-white hover:bg-blue-700 transition-all shadow-lg hover:scale-105 active:scale-95">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Submit a Gem
+          </a>
+        </div>
       </div>
     </div>
 
-    <!-- Category Filter Dropdown -->
-    <div class="sticky top-16 md:top-20 z-30 -mx-4 px-4 py-6 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md mb-12 border-b border-gray-100 dark:border-zinc-800">
-      <div class="max-w-xs">
-        <label for="category-select" class="block text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500 mb-2 px-1">
-          Filter by Category
-        </label>
-        <div class="relative">
-          <select 
-            id="category-select" 
-            class="block w-full rounded-2xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-5 py-3 text-sm font-bold text-black dark:text-white focus:border-blue-500 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
-          >
-            {categories.map((cat) => (
-              <option value={cat}>{cat}</option>
-            ))}
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-            </svg>
+    <!-- Category and Search Filter -->
+    <div class="sticky top-16 md:top-20 z-30 -mx-4 px-4 py-8 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md mb-12 border-b border-gray-100 dark:border-zinc-800 transition-all">
+      <div class="flex flex-col md:flex-row gap-6 items-center justify-between max-w-7xl mx-auto px-4">
+        <div class="w-full md:max-w-2xl relative group">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-gray-400 group-focus-within:text-blue-600 transition-colors">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <input 
+            type="text" 
+            id="search-gems" 
+            placeholder="Search gems by name, description, or category..." 
+            class="block w-full rounded-2xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 pl-12 pr-4 py-4 text-sm font-bold text-black dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+          />
+        </div>
+        
+        <div class="w-full md:max-w-[240px]">
+          <div class="relative">
+            <select 
+              id="category-select" 
+              class="block w-full rounded-2xl border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-5 py-4 text-sm font-bold text-black dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-sm"
+            >
+              {categories.map((cat) => (
+                <option value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+              ))}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Tools Grid -->
+    <div id="no-results" class="hidden col-span-full py-32 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 transition-all">
+      <div class="h-20 w-20 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-6">
+        <svg class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </div>
+      <h3 class="text-xl font-bold text-black dark:text-white">No gems found</h3>
+      <p class="mt-2 text-gray-500 dark:text-zinc-400 text-center max-w-sm">We couldn't find any gems matching your current search or category filters.</p>
+      <button id="clear-filters" class="mt-8 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        Clear all filters
+      </button>
+    </div>
+
     <div id="tools-grid" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-all duration-300">
-      {toolsWithCategory && toolsWithCategory.length > 0 ? (
+      {hasError ? (
+        <div class="col-span-full py-32 flex flex-col items-center justify-center rounded-3xl border border-dashed border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10">
+          <div class="h-20 w-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6 text-red-500">
+            <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-black text-red-600 dark:text-red-400">Connection Error</h3>
+          <p class="mt-2 text-red-500/80 dark:text-red-400/80 text-center max-w-sm">Failed to connect to the directory. We might be experiencing high traffic. Please try refreshing the page in a few minutes.</p>
+        </div>
+      ) : toolsWithCategory && toolsWithCategory.length > 0 ? (
         toolsWithCategory.map((tool) => (
           <div 
             class="tool-card group relative flex flex-col rounded-2xl border border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6 hover:border-black/10 dark:hover:border-white/10 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all duration-500 cursor-pointer"
@@ -84,7 +124,7 @@ const categories = ['All', ...sortedCategories];
                   <div class="h-6 w-6 bg-gray-200 dark:bg-zinc-700 rounded-full"></div>
                 )}
               </div>
-              <div class="flex items-center gap-1.5 rounded-lg bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-bold text-gray-600 dark:text-zinc-400">
+              <div data-upvote-count class="flex items-center gap-1.5 rounded-lg bg-gray-50 dark:bg-zinc-800 px-2.5 py-1 text-[11px] font-bold text-gray-600 dark:text-zinc-400">
                 <svg class="h-3 w-3 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 21l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.18L12 21z" />
                 </svg>
@@ -112,16 +152,19 @@ const categories = ['All', ...sortedCategories];
           </div>
         ))
       ) : (
-        <div class="col-span-full py-32 text-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
-          <h3 class="text-lg font-bold text-black dark:text-white">No gems found</h3>
-          <p class="mt-2 text-sm text-gray-500 dark:text-zinc-400">Try adjusting your filters.</p>
+        <div class="col-span-full py-32 flex flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50">
+          <div class="h-20 w-20 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-6">
+            <svg class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <h3 class="text-xl font-bold text-black dark:text-white">No gems found</h3>
+          <p class="mt-2 text-gray-500 dark:text-zinc-400 text-center max-w-sm">We couldn't find any gems in the directory at the moment.</p>
         </div>
       )}
     </div>
 
     <!-- Modal for Tool Details -->
     <div id="tool-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 backdrop-blur-sm bg-black/20 dark:bg-black/40">
-      <div class="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl transition-all scale-95 duration-300" id="modal-content">
+      <div class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl transition-all scale-95 duration-300" id="modal-content">
         <!-- Modal Header with Background Gradient -->
         <div class="h-32 w-full bg-gradient-to-br from-blue-500 to-indigo-600 p-8">
            <button id="close-modal" class="absolute top-6 right-6 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md hover:bg-white/40 transition-all">
@@ -134,18 +177,18 @@ const categories = ['All', ...sortedCategories];
         <!-- Modal Body -->
         <div class="px-8 pb-10 -mt-10">
           <div class="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white dark:border-zinc-900 bg-white dark:bg-zinc-800 p-3 shadow-lg">
-            <img id="modal-icon" src="" alt="" class="h-full w-full object-contain" />
+            <img id="modal-icon" src="" alt="" class="h-full w-full object-contain" loading="lazy" />
           </div>
           
           <div class="mt-6">
-            <div class="flex items-center gap-3">
-               <h2 id="modal-title" class="text-3xl font-black text-black dark:text-white tracking-tighter"></h2>
+            <div class="flex flex-wrap items-center gap-3">
+               <h2 id="modal-title" class="text-2xl sm:text-3xl font-black text-black dark:text-white tracking-tighter"></h2>
                <span id="modal-category" class="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-700/10 dark:ring-blue-400/20"></span>
             </div>
             <p id="modal-description" class="mt-4 text-lg leading-relaxed text-gray-600 dark:text-zinc-400"></p>
             
-            <div class="mt-10 flex items-center gap-4">
-              <a id="modal-url" href="" target="_blank" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-black dark:bg-white px-6 py-4 text-sm font-bold text-white dark:text-black hover:bg-gray-800 dark:hover:bg-zinc-200 transition-all">
+            <div class="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <a id="modal-url" href="" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-black dark:bg-white px-6 py-4 text-sm font-bold text-white dark:text-black hover:bg-gray-800 dark:hover:bg-zinc-200 transition-all">
                 Visit Website
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -177,24 +220,56 @@ const categories = ['All', ...sortedCategories];
 </style>
 
 <script>
-  // Filter Logic
+
+  // Filter & Search Logic
   const categorySelect = document.getElementById('category-select') as HTMLSelectElement;
+  const searchInput = document.getElementById('search-gems') as HTMLInputElement;
   const cards = document.querySelectorAll('.tool-card');
 
-  categorySelect?.addEventListener('change', () => {
+  function updateFilters() {
     const category = categorySelect.value;
+    const term = searchInput.value.toLowerCase();
+    let visibleCount = 0;
 
-    // Filter Cards
     cards.forEach(card => {
-      const cardCategory = (card as HTMLElement).dataset.category;
-      if (category === 'All' || cardCategory === category) {
-        (card as HTMLElement).style.display = 'flex';
-        setTimeout(() => (card as HTMLElement).style.opacity = '1', 10);
+      const cardEl = card as HTMLElement;
+      const cardCategory = cardEl.dataset.category;
+      const toolData = JSON.parse(cardEl.dataset.toolJson || '{}');
+      
+      const matchesCategory = category === 'All' || cardCategory === category;
+      const matchesSearch = 
+        (toolData.title || '').toLowerCase().includes(term) || 
+        (toolData.description || '').toLowerCase().includes(term) ||
+        (toolData.url || '').toLowerCase().includes(term) ||
+        (cardCategory || '').toLowerCase().includes(term);
+
+      if (matchesCategory && matchesSearch) {
+        cardEl.style.display = 'flex';
+        setTimeout(() => cardEl.style.opacity = '1', 10);
+        visibleCount++;
       } else {
-        (card as HTMLElement).style.opacity = '0';
-        setTimeout(() => (card as HTMLElement).style.display = 'none', 300);
+        cardEl.style.opacity = '0';
+        setTimeout(() => cardEl.style.display = 'none', 300);
       }
     });
+
+    const noResults = document.getElementById('no-results');
+    if (noResults) {
+      if (visibleCount === 0) {
+        setTimeout(() => noResults.classList.remove('hidden'), 300);
+      } else {
+        noResults.classList.add('hidden');
+      }
+    }
+  }
+
+  categorySelect?.addEventListener('change', updateFilters);
+  searchInput?.addEventListener('input', updateFilters);
+
+  document.getElementById('clear-filters')?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (categorySelect) categorySelect.value = 'All';
+    updateFilters();
   });
 
   // Modal Logic
@@ -210,7 +285,7 @@ const categories = ['All', ...sortedCategories];
   const mUrl = document.getElementById('modal-url') as HTMLAnchorElement;
   const mUpvotes = document.getElementById('modal-upvotes-count');
 
-  let currentToolId = null;
+  let currentToolId: string | null = null;
 
   cards.forEach(card => {
     card.addEventListener('click', () => {
@@ -229,35 +304,50 @@ const categories = ['All', ...sortedCategories];
       modal?.classList.remove('opacity-0', 'pointer-events-none');
       modalContent?.classList.remove('scale-95');
       modalContent?.classList.add('scale-100');
+      document.body.style.overflow = 'hidden';
     });
   });
 
   upvoteBtn?.addEventListener('click', async () => {
     if (!currentToolId) return;
     
+    // Client-side upvote rate limiting via localStorage
+    const upvotedKey = `yt_upvoted_${currentToolId}`;
+    if (localStorage.getItem(upvotedKey)) {
+      alert('You have already upvoted this gem!');
+      return;
+    }
+
     // Disable button to prevent spam
     const btn = upvoteBtn as HTMLButtonElement;
     btn.disabled = true;
     btn.style.opacity = '0.5';
 
-    const { error } = await supabase.rpc('increment_upvotes', { row_id: currentToolId });
-    
-    if (error) {
-      console.error('Error upvoting:', error);
-      alert('Failed to upvote. Please try again.');
-    } else {
+    try {
+      // Use server-side API to bypass RLS restrictions
+      const res = await fetch('/api/upvote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toolId: currentToolId })
+      });
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        throw new Error(result.error || 'Failed to upvote');
+      }
+
+      // Mark as upvoted in localStorage
+      localStorage.setItem(upvotedKey, '1');
+
       // Update UI
       if (mUpvotes) {
         const currentCount = parseInt(mUpvotes.textContent || '0');
         mUpvotes.textContent = (currentCount + 1).toString();
       }
-      // Also update the card in the background if possible, or just reload/refresh
-      // For simplicity, let's just update the local count in the DOM
+      // Update the card count in the background
       const card = Array.from(cards).find(c => JSON.parse((c as HTMLElement).dataset.toolJson || '{}').id === currentToolId);
       if (card) {
-        const countSpan = card.querySelector('.flex.items-center.gap-1.5 span') || card.querySelector('.flex.items-center.gap-1.5');
-        // The count is inside a div with svg, let's find the text node or target the div
-        const upvoteDiv = card.querySelector('.flex.items-center.gap-1.5');
+        const upvoteDiv = card.querySelector('[data-upvote-count]');
         if (upvoteDiv) {
            const currentCount = parseInt(upvoteDiv.textContent?.trim() || '0');
            upvoteDiv.innerHTML = `
@@ -268,20 +358,33 @@ const categories = ['All', ...sortedCategories];
            `;
         }
       }
+    } catch (err: any) {
+      console.error('Error upvoting:', err);
+      alert(err.message || 'Failed to upvote. Please try again.');
     }
     
     btn.disabled = false;
     btn.style.opacity = '1';
   });
 
-  closeModal?.addEventListener('click', () => {
+  function closeModalFn() {
     modal?.classList.add('opacity-0', 'pointer-events-none');
     modalContent?.classList.remove('scale-100');
     modalContent?.classList.add('scale-95');
-  });
+    document.body.style.overflow = '';
+  }
+
+  closeModal?.addEventListener('click', closeModalFn);
 
   // Close on backdrop click
   modal?.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal?.click();
+    if (e.target === modal) closeModalFn();
+  });
+
+  // Bug 7: Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal?.classList.contains('pointer-events-none')) {
+      closeModalFn();
+    }
   });
 </script>
